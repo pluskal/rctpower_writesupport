@@ -129,14 +129,14 @@ def communicate_with_server(
                 sock.sendall(send_frame)
                 print("*** Frame sent. Waiting for response...")
 
-                deadline = time.time() + timeout
+                deadline = time.monotonic() + timeout
                 pending = b""
                 response_frame = ReceiveFrame()
-                while time.time() < deadline:
+                while time.monotonic() < deadline:
                     if pending:
                         chunk, pending = pending, b""
                     else:
-                        remaining = max(0.1, deadline - time.time())
+                        remaining = max(0.0, deadline - time.monotonic())
                         ready_read, _, _ = select.select([sock], [], [], remaining)
                         if not ready_read:
                             continue
