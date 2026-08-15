@@ -59,7 +59,7 @@ if not HOST:
 
 def read_register(sock, oi, timeout=10, raw=False):
     """Read one register on an open socket; id+CRC validated. None on timeout."""
-    sock.send(make_frame(command=Command.READ, id=oi.object_id))
+    sock.sendall(make_frame(command=Command.READ, id=oi.object_id))
     deadline = time.monotonic() + timeout
     pending = b""
     frame = ReceiveFrame()
@@ -123,7 +123,11 @@ with socket.create_connection((HOST, 8899), timeout=10) as sock:
     for m in range(MODULES):
         blob = read_retry(sock, f"battery.cells[{m}]", raw=True)
         if blob:
-            modules[m] = decode_cells(blob)
+            cells = decode_cells(blob)
+            # A too-short payload decodes to [] — storing it would crash the
+            # min()/max() aggregates below, so keep non-empty modules only.
+            if cells:
+                modules[m] = cells
         time.sleep(0.3)
     for name, key in [
         ("battery.min_cell_voltage", "bms_min_cell_v"),

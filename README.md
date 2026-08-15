@@ -196,7 +196,6 @@ homeassistant:
 
 ![image](<images/packages_result.png>)
 
-### 
 ## Battery cell monitoring (rct_cells.py)
 
 `rct_cells.py` reads **live per-cell voltages and temperatures** of every
