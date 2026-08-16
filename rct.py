@@ -254,7 +254,34 @@ def set_value(parameter: str, value: str, host: str) -> str:
     )
     send_data(host_port, frame)
 
-    return f"*** SET SUCCESS: {parameter} = {value} on {host}"
+    # Post-write verification: the RCT protocol has no write acknowledgement
+    # at all -- a lost, starved or cross-delivered frame (see the get-path
+    # validation) makes "sent" and "applied" two different things. Read the
+    # register back with id validation and compare against what we wrote.
+    time.sleep(1.0)
+    readback = communicate_with_server(
+        host_port,
+        make_frame(command=Command.READ, id=object_info.object_id),
+        object_info.response_data_type,
+        expected_id=object_info.object_id,
+    )
+    if readback is None:
+        print(f"### ERROR ### Write readback failed for {parameter} on {host}")
+        sys.exit(1)
+    if isinstance(value, bool):
+        verified = bool(readback) == value
+    elif isinstance(value, float):
+        verified = abs(float(readback) - value) <= 0.005
+    else:
+        verified = readback == value
+    if not verified:
+        print(
+            f"### ERROR ### Write UNVERIFIED: {parameter} wrote {value},"
+            f" readback {readback} on {host}"
+        )
+        sys.exit(1)
+
+    return f"*** SET VERIFIED: {parameter} = {value} (readback {readback}) on {host}"
 
 
 def get_value(parameter: str, host: str) -> str:
